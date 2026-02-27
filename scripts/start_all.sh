@@ -40,13 +40,13 @@ else
     echo -e "${RED}Aviso: Omitiendo start-api de backend (Puerto 3000).${NC}"
 fi
 
-# Auth Backend (Puerto 3001 - Reservado para emular Playground)
+# Auth Backend (Puerto 3003 - Reubicado para dejar 3001 libre a Frontend)
 cd "$BASE_DIR/demo-ticketing-auth"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
-    nohup sam local start-api --port 3001 --container-host host.docker.internal > sam-auth.log 2>&1 &
+    nohup sam local start-api --port 3003 --container-host host.docker.internal > sam-auth.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.auth_api.pid"
 else
-    echo -e "${RED}Aviso: Omitiendo start-api de auth (Puerto 3001).${NC}"
+    echo -e "${RED}Aviso: Omitiendo start-api de auth (Puerto 3003).${NC}"
 fi
 
 # Worker/Java Backend (Puerto 3002 - Reservado para emular Playground)
@@ -69,7 +69,7 @@ echo -e "${GREEN}¡Ticketera iniciada en background!${NC}"
 echo -e "Endpoints Locales:"
 echo -e " 🚀 Frontend (Vite):       http://localhost:3001"
 echo -e " 📦 Backend Core (SAM):    http://localhost:3000"
-echo -e " 🔐 Auth Backend (Mock):   http://localhost:3001"
+echo -e " 🔐 Auth Backend (Mock):   http://localhost:3003"
 echo -e " ☕ Worker API (Mock):     http://localhost:3002"
 echo -e "${BLUE}================================================================${NC}"
 echo -e "Logs disponibles: demo-ticketing-backend/sam-backend.log y demo-ticketing-web/web.log"
