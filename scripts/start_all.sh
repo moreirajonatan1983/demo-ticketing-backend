@@ -61,13 +61,13 @@ fi
 # 3. Iniciar Frontend (Web)
 echo -e "${GREEN}>>> [3/3] Iniciando React Web App (Vite)...${NC}"
 cd "$BASE_DIR/demo-ticketing-web"
-nohup npm run dev -- --port 5173 > web.log 2>&1 &
+nohup npm run dev -- --port 3001 > web.log 2>&1 &
 echo $! > "$SCRIPTS_DIR/.web.pid"
 
 echo -e "${BLUE}================================================================${NC}"
 echo -e "${GREEN}¡Ticketera iniciada en background!${NC}"
 echo -e "Endpoints Locales:"
-echo -e " 🚀 Frontend (Vite):       http://localhost:5173"
+echo -e " 🚀 Frontend (Vite):       http://localhost:3001"
 echo -e " 📦 Backend Core (SAM):    http://localhost:3000"
 echo -e " 🔐 Auth Backend (Mock):   http://localhost:3001"
 echo -e " ☕ Worker API (Mock):     http://localhost:3002"
