@@ -13,18 +13,19 @@ SCRIPTS_DIR="$BASE_DIR/demo-ticketing-backend/scripts"
 echo -e "${BLUE}>>> Iniciando entorno local de Ticketera Cloud (API & Web)...${NC}"
 
 # Verificación de Docker (SAM lo necesita)
+DOCKER_RUNNING=true
 if ! docker info >/dev/null 2>&1; then
-    echo -e "${RED}ERROR: Docker no está corriendo. Por favor inicia Docker Desktop / OrbStack.${NC}"
-    exit 1
+    echo -e "${RED}AVISO: Docker no está corriendo. Las APIs Backend fallarán, pero la Web App React levantará modo Mock.${NC}"
+    DOCKER_RUNNING=false
 fi
 
 # 1. Construcción de Binarios
 echo -e "${GREEN}>>> [1/3] Construyendo Backend (Go/Node) con AWS SAM...${NC}"
 cd "$BASE_DIR/demo-ticketing-backend" 
-if [ -f "template.yaml" ]; then
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     sam build > build-backend.log 2>&1
 else
-    echo -e "${RED}Aviso: template.yaml no encontrado aún en demo-ticketing-backend. Omitiendo SAM build...${NC}"
+    echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado. Omitiendo SAM build...${NC}"
 fi
 
 # 2. Levantar APIs en Segundo Plano
@@ -32,7 +33,7 @@ echo -e "${BLUE}>>> [2/3] Levantando simuladores de API Gateway...${NC}"
 
 # Backend Transaccional (Puerto 3000)
 cd "$BASE_DIR/demo-ticketing-backend"
-if [ -f "template.yaml" ]; then
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     nohup sam local start-api --port 3000 > sam-backend.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.backend_api.pid"
 else
