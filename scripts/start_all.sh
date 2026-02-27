@@ -34,10 +34,28 @@ echo -e "${BLUE}>>> [2/3] Levantando simuladores de API Gateway...${NC}"
 # Backend Transaccional (Puerto 3000)
 cd "$BASE_DIR/demo-ticketing-backend"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
-    nohup sam local start-api --port 3000 > sam-backend.log 2>&1 &
+    nohup sam local start-api --port 3000 --container-host host.docker.internal > sam-backend.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.backend_api.pid"
 else
-    echo -e "${RED}Aviso: Omitiendo start-api de backend.${NC}"
+    echo -e "${RED}Aviso: Omitiendo start-api de backend (Puerto 3000).${NC}"
+fi
+
+# Auth Backend (Puerto 3001 - Reservado para emular Playground)
+cd "$BASE_DIR/demo-ticketing-auth"
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    nohup sam local start-api --port 3001 --container-host host.docker.internal > sam-auth.log 2>&1 &
+    echo $! > "$SCRIPTS_DIR/.auth_api.pid"
+else
+    echo -e "${RED}Aviso: Omitiendo start-api de auth (Puerto 3001).${NC}"
+fi
+
+# Worker/Java Backend (Puerto 3002 - Reservado para emular Playground)
+cd "$BASE_DIR/demo-ticketing-worker" 2>/dev/null || cd "$BASE_DIR"
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    nohup sam local start-api --port 3002 --container-host host.docker.internal > sam-worker.log 2>&1 &
+    echo $! > "$SCRIPTS_DIR/.worker_api.pid"
+else
+    echo -e "${RED}Aviso: Omitiendo start-api de worker (Puerto 3002).${NC}"
 fi
 
 # 3. Iniciar Frontend (Web)
@@ -51,6 +69,8 @@ echo -e "${GREEN}¡Ticketera iniciada en background!${NC}"
 echo -e "Endpoints Locales:"
 echo -e " 🚀 Frontend (Vite):       http://localhost:5173"
 echo -e " 📦 Backend Core (SAM):    http://localhost:3000"
+echo -e " 🔐 Auth Backend (Mock):   http://localhost:3001"
+echo -e " ☕ Worker API (Mock):     http://localhost:3002"
 echo -e "${BLUE}================================================================${NC}"
 echo -e "Logs disponibles: demo-ticketing-backend/sam-backend.log y demo-ticketing-web/web.log"
 echo -e "Usa './scripts/stop_all.sh' para cerrar todos los procesos de forma limpia."
