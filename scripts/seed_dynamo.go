@@ -22,16 +22,24 @@ func main() {
 
 	eventsTable := os.Getenv("EVENTS_TABLE_NAME")
 	if eventsTable == "" {
-		eventsTable = "events-lambda-EventsTable-123456" // Replace with actual table
+		eventsTable = "events-aws-lambda-EventsTable-123456" // Replace with actual table
 	}
 
 	seatsTable := os.Getenv("SEATS_TABLE_NAME")
 	if seatsTable == "" {
-		seatsTable = "seats-lambda-EventSeatsTable-123456" // Replace with actual table
+		seatsTable = "seats-aws-lambda-EventSeatsTable-123456" // Replace with actual table
+	}
+
+	showsTable := os.Getenv("SHOWS_TABLE_NAME")
+	if showsTable == "" {
+		showsTable = "shows-aws-lambda-ShowsTable-123456"
 	}
 
 	fmt.Println("Seeding Events...")
 	seedEvents(client, eventsTable)
+
+	fmt.Println("Seeding Shows...")
+	seedShows(client, showsTable)
 
 	fmt.Println("Seeding Seats...")
 	seedSeats(client, seatsTable)
@@ -74,6 +82,36 @@ func seedEvents(client *dynamodb.Client, tableName string) {
 		})
 		if err != nil {
 			log.Printf("Failed to insert event %s: %v", item["id"].(*types.AttributeValueMemberS).Value, err)
+		}
+	}
+}
+
+func seedShows(client *dynamodb.Client, tableName string) {
+	eventId := "1"
+	shows := []map[string]types.AttributeValue{
+		{
+			"event_id": &types.AttributeValueMemberS{Value: eventId},
+			"id":       &types.AttributeValueMemberS{Value: "1"},
+			"date":     &types.AttributeValueMemberS{Value: "15 Octubre 2026"},
+			"time":     &types.AttributeValueMemberS{Value: "21:00 hs"},
+			"status":   &types.AttributeValueMemberS{Value: "available"},
+		},
+		{
+			"event_id": &types.AttributeValueMemberS{Value: eventId},
+			"id":       &types.AttributeValueMemberS{Value: "2"},
+			"date":     &types.AttributeValueMemberS{Value: "16 Octubre 2026"},
+			"time":     &types.AttributeValueMemberS{Value: "20:00 hs"},
+			"status":   &types.AttributeValueMemberS{Value: "soldout"},
+		},
+	}
+
+	for _, item := range shows {
+		_, err := client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+			TableName: aws.String(tableName),
+			Item:      item,
+		})
+		if err != nil {
+			log.Printf("Failed to insert show %s: %v", item["id"].(*types.AttributeValueMemberS).Value, err)
 		}
 	}
 }

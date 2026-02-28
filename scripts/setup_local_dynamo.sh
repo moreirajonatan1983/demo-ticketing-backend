@@ -32,8 +32,18 @@ aws dynamodb create-table \
     --endpoint-url $DYNAMODB_ENDPOINT \
     || echo "Table TicketsTable already exists."
 
+echo "Creating ShowsTable..."
+aws dynamodb create-table \
+    --table-name ShowsTable \
+    --attribute-definitions AttributeName=event_id,AttributeType=S \
+    --key-schema AttributeName=event_id,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST \
+    --endpoint-url $DYNAMODB_ENDPOINT \
+    || echo "Table ShowsTable already exists."
+
 echo "Seeding..."
 export EVENTS_TABLE_NAME="EventsTable"
+export SHOWS_TABLE_NAME="ShowsTable"
 export SEATS_TABLE_NAME="EventSeatsTable"
 export TICKETS_TABLE_NAME="TicketsTable"
 export AWS_ENDPOINT_URL="http://localhost:8000"
