@@ -1,0 +1,172 @@
+{
+    "Comment": "Ticketera Cloud - Checkout SAGA (Reserve -> Pay -> Issue Ticket / Compensate on failure)",
+    "StartAt": "ReserveSeats",
+    "States": {
+        "ReserveSeats": {
+            "Type": "Map",
+            "Comment": "For each seat in the input array, call the reserve Lambda",
+            "ItemsPath": "$.seats",
+            "MaxConcurrency": 1,
+            "Iterator": {
+                "StartAt": "CallReserveSeat",
+                "States": {
+                    "CallReserveSeat": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:lambda:us-east-1:000000000000:function:saga-reserve-seat",
+                        "Parameters": {
+                            "httpMethod": "POST",
+                            "resource": "/events/{eventId}/seats/{seatId}/reserve",
+                            "pathParameters": {
+                                "eventId.$": "$.eventId",
+                                "seatId.$": "$.seatId"
+                            },
+                            "body": "{}"
+                        },
+                        "Retry": [
+                            {
+                                "ErrorEquals": [
+                                    "Lambda.ServiceException",
+                                    "Lambda.SdkClientException"
+                                ],
+                                "IntervalSeconds": 2,
+                                "MaxAttempts": 2,
+                                "BackoffRate": 2
+                            }
+                        ],
+                        "End": true
+                    }
+                }
+            },
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Next": "SeatReservationFailed",
+                    "ResultPath": "$.error"
+                }
+            ],
+            "ResultPath": "$.reserveResult",
+            "Next": "ProcessPayment"
+        },
+        "ProcessPayment": {
+            "Type": "Task",
+            "Comment": "Call checkout Lambda (simulates payment gateway). Expects { status: 'APPROVED' | 'REJECTED' }",
+            "Resource": "arn:aws:lambda:us-east-1:000000000000:function:saga-process-payment",
+            "Parameters": {
+                "httpMethod": "POST",
+                "resource": "/checkout",
+                "body.$": "States.JsonToString($.paymentPayload)"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2
+                }
+            ],
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Next": "CompensateSeats",
+                    "ResultPath": "$.error"
+                }
+            ],
+            "ResultPath": "$.paymentResult",
+            "Next": "CheckPaymentStatus"
+        },
+        "CheckPaymentStatus": {
+            "Type": "Choice",
+            "Comment": "Inspect payment result. If APPROVED go emit ticket; if REJECTED rollback seats.",
+            "Choices": [
+                {
+                    "Variable": "$.paymentResult.body.status",
+                    "StringEquals": "APPROVED",
+                    "Next": "IssueTicket"
+                },
+                {
+                    "Variable": "$.paymentResult.body.status",
+                    "StringEquals": "REJECTED",
+                    "Next": "CompensateSeats"
+                }
+            ],
+            "Default": "CompensateSeats"
+        },
+        "IssueTicket": {
+            "Type": "Task",
+            "Comment": "Payment was approved. Create the final ticket in DynamoDB.",
+            "Resource": "arn:aws:lambda:us-east-1:000000000000:function:saga-create-ticket",
+            "Parameters": {
+                "httpMethod": "POST",
+                "resource": "/tickets",
+                "body.$": "States.JsonToString($.ticketPayload)"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 3,
+                    "BackoffRate": 2
+                }
+            ],
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Next": "CompensateSeats",
+                    "ResultPath": "$.error"
+                }
+            ],
+            "ResultPath": "$.ticketResult",
+            "Next": "CheckoutSuccess"
+        },
+        "CompensateSeats": {
+            "Type": "Map",
+            "Comment": "SAGA Compensating Action: release all reserved seats back to 'available'",
+            "ItemsPath": "$.seats",
+            "MaxConcurrency": 1,
+            "Iterator": {
+                "StartAt": "CallReleaseSeat",
+                "States": {
+                    "CallReleaseSeat": {
+                        "Type": "Task",
+                        "Resource": "arn:aws:lambda:us-east-1:000000000000:function:saga-release-seat",
+                        "Parameters": {
+                            "httpMethod": "POST",
+                            "resource": "/events/{eventId}/seats/{seatId}/release",
+                            "pathParameters": {
+                                "eventId.$": "$.eventId",
+                                "seatId.$": "$.seatId"
+                            },
+                            "body": "{}"
+                        },
+                        "End": true
+                    }
+                }
+            },
+            "ResultPath": "$.compensateResult",
+            "Next": "CheckoutFailed"
+        },
+        "SeatReservationFailed": {
+            "Type": "Fail",
+            "Error": "SeatReservationFailed",
+            "Cause": "One or more seats could not be reserved (already taken or conflict)"
+        },
+        "CheckoutSuccess": {
+            "Type": "Succeed"
+        },
+        "CheckoutFailed": {
+            "Type": "Fail",
+            "Error": "CheckoutFailed",
+            "Cause": "Payment rejected or ticket creation failed. Seats have been released."
+        }
+    }
+}

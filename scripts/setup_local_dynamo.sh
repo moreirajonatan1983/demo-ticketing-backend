@@ -56,3 +56,6 @@ export AWS_ENDPOINT_URL="http://localhost:8000"
 go run seed_dynamo.go
 
 echo "Done!"
+
+echo "Setting up SAGA Step Functions..."
+./setup_saga.sh
