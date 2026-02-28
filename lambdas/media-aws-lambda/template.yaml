@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ticketera Cloud - Media Service
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+
+Resources:
+  MediaApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        
+  MediaFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Environment:
+        Variables:
+          AWS_ENDPOINT_URL: ""
+          MEDIA_BUCKET_NAME: "ticketera-images-local"
+      Events:
+        GetEventImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MediaApi
+            Path: /media/events/{eventId}
+            Method: GET
