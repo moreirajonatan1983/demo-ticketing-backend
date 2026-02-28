@@ -13,13 +13,19 @@ func NewCheckoutService() *CheckoutService {
 }
 
 func (s *CheckoutService) ProcessCheckout(req domain.CheckoutRequest) (domain.CheckoutResponse, error) {
-	log.Printf("Processing checkout for Event: %s, Seats: %d", req.EventId, len(req.Seats))
+	log.Printf("Validating payment for Event: %s, Seats: %d, Method: %s", req.EventId, len(req.Seats), req.Method)
 
-	// Business logic: evaluate payload, reserve seats on DynamoDB...
+	if req.Method == "REJECTED_CARD" {
+		return domain.CheckoutResponse{
+			Message: "Pago Rechazado por Fondos Insuficientes",
+			Status:  "REJECTED",
+			OrderID: "",
+		}, nil
+	}
 
 	return domain.CheckoutResponse{
-		Message: "Solicitud Recibida Async",
-		Status:  "PROCESSING",
+		Message: "Pago exitoso",
+		Status:  "APPROVED",
 		OrderID: "ORD-XYZ-1234",
 	}, nil
 }
