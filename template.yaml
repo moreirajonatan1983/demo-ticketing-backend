@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ticketera Cloud - Core Transaccional
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        ENV: local
+
+Resources:
+  TicketingApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        
+  EventsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Events:
+        GetEvents:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TicketingApi
+            Path: /events
+            Method: GET
+        GetEventById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TicketingApi
+            Path: /events/{id}
+            Method: GET
+            
+  CheckoutFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Events:
+        PostCheckout:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TicketingApi
+            Path: /checkout
+            Method: POST
+
+Outputs:
+  ApiURL:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${TicketingApi}.execute-api.${AWS::Region}.amazonaws.com/dev/"
