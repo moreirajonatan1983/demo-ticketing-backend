@@ -35,6 +35,20 @@ else
     echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en checkout. Omitiendo SAM build...${NC}"
 fi
 
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/seats-lambda" 
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    sam build > build-backend-seats.log 2>&1
+else
+    echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en seats. Omitiendo SAM build...${NC}"
+fi
+
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/tickets-lambda" 
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    sam build > build-backend-tickets.log 2>&1
+else
+    echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en tickets. Omitiendo SAM build...${NC}"
+fi
+
 # 2. Levantar APIs en Segundo Plano
 echo -e "${BLUE}>>> [2/3] Levantando simuladores de API Gateway...${NC}"
 
@@ -54,6 +68,24 @@ if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     echo $! > "$SCRIPTS_DIR/.checkout_api.pid"
 else
     echo -e "${RED}Aviso: Omitiendo start-api de checkout (Puerto 3004).${NC}"
+fi
+
+# Backend Transaccional - Seats (Puerto 3005)
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/seats-lambda"
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    nohup sam local start-api --port 3005 --container-host host.docker.internal > sam-backend-seats.log 2>&1 &
+    echo $! > "$SCRIPTS_DIR/.seats_api.pid"
+else
+    echo -e "${RED}Aviso: Omitiendo start-api de seats (Puerto 3005).${NC}"
+fi
+
+# Backend Transaccional - Tickets (Puerto 3006)
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/tickets-lambda"
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    nohup sam local start-api --port 3006 --container-host host.docker.internal > sam-backend-tickets.log 2>&1 &
+    echo $! > "$SCRIPTS_DIR/.tickets_api.pid"
+else
+    echo -e "${RED}Aviso: Omitiendo start-api de tickets (Puerto 3006).${NC}"
 fi
 
 # Auth Backend (Puerto 3003 - Reubicado para dejar 3001 libre a Frontend)
@@ -86,6 +118,8 @@ echo -e "Endpoints Locales:"
 echo -e " 🚀 Frontend (Vite):       http://localhost:3001"
 echo -e " 📦 Backend Core (Events): http://localhost:3000"
 echo -e " 📦 Backend Core (CheckOut): http://localhost:3004"
+echo -e " 📦 Backend Core (Seats):  http://localhost:3005"
+echo -e " 📦 Backend Core (Tickets):http://localhost:3006"
 echo -e " 🔐 Auth Backend (Mock):   http://localhost:3003"
 echo -e " ☕ Worker API (Mock):     http://localhost:3002"
 echo -e "${BLUE}================================================================${NC}"

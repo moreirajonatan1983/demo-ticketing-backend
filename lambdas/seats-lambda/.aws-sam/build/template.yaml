@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ticketera Cloud - Seats Service
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+    - arm64
+Resources:
+  SeatsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: '''GET,POST,OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+  SeatsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+      SamResourceId: SeatsFunction
+    Properties:
+      CodeUri: SeatsFunction
+      Handler: bootstrap
+      Events:
+        GetSeatsByEventId:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: SeatsApi
+            Path: /events/{eventId}/seats
+            Method: GET

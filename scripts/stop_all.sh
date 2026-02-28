@@ -11,7 +11,7 @@ SCRIPTS_DIR="$BASE_DIR/demo-ticketing-backend/scripts"
 echo -e "${BLUE}>>> Deteniendo el entorno local de Ticketera Cloud...${NC}"
 
 # Matar procesos registrados por PID
-for service in backend_api checkout_api auth_api worker_api web; do
+for service in backend_api checkout_api seats_api tickets_api auth_api worker_api web; do
     pid_file="$SCRIPTS_DIR/.$service.pid"
     if [ -f "$pid_file" ]; then
         pid=$(cat "$pid_file")
