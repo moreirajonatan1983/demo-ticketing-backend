@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ticketera Cloud - Tickets Service
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+    - arm64
+Resources:
+  TicketsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: '''GET,POST,OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+  TicketsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+      SamResourceId: TicketsFunction
+    Properties:
+      CodeUri: TicketsFunction
+      Handler: bootstrap
+      Events:
+        GetMyTickets:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: TicketsApi
+            Path: /tickets/me
+            Method: GET
+        GetSwagger:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: TicketsApi
+            Path: /swagger.json
+            Method: GET

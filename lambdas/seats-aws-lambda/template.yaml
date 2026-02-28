@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ticketera Cloud - Seats Service
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+
+Resources:
+  SeatsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        
+  SeatsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Environment:
+        Variables:
+          SEATS_TABLE_NAME: !Ref EventSeatsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventSeatsTable
+      Events:
+        GetSeatsByEventId:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SeatsApi
+            Path: /events/{eventId}/seats
+            Method: GET
+        GetSwagger:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SeatsApi
+            Path: /swagger.json
+            Method: GET
+
+  EventSeatsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: event_id
+        Type: String
+      BillingMode: PAY_PER_REQUEST

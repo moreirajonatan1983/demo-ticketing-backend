@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ticketera Cloud - Checkout Service
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+    - arm64
+Resources:
+  CheckoutApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: '''GET,POST,OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+  CheckoutFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+      SamResourceId: CheckoutFunction
+    Properties:
+      CodeUri: CheckoutFunction
+      Handler: bootstrap
+      Events:
+        PostCheckout:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: CheckoutApi
+            Path: /checkout
+            Method: POST
+        GetSwagger:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: CheckoutApi
+            Path: /swagger.json
+            Method: GET

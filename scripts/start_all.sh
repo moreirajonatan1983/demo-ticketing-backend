@@ -21,28 +21,28 @@ fi
 
 # 1. Construcción de Binarios
 echo -e "${GREEN}>>> [1/3] Construyendo Backend (Go/Node) con AWS SAM...${NC}"
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/events-lambda" 
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/events-aws-lambda" 
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     sam build > build-backend-events.log 2>&1
 else
     echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en events. Omitiendo SAM build...${NC}"
 fi
 
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/checkout-lambda" 
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/checkout-aws-lambda" 
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     sam build > build-backend-checkout.log 2>&1
 else
     echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en checkout. Omitiendo SAM build...${NC}"
 fi
 
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/seats-lambda" 
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/seats-aws-lambda" 
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     sam build > build-backend-seats.log 2>&1
 else
     echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en seats. Omitiendo SAM build...${NC}"
 fi
 
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/tickets-lambda" 
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/tickets-aws-lambda" 
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     sam build > build-backend-tickets.log 2>&1
 else
@@ -53,7 +53,7 @@ fi
 echo -e "${BLUE}>>> [2/3] Levantando simuladores de API Gateway...${NC}"
 
 # Backend Transaccional - Events (Puerto 3000)
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/events-lambda"
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/events-aws-lambda"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     nohup sam local start-api --port 3000 --container-host host.docker.internal > sam-backend-events.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.backend_api.pid"
@@ -62,7 +62,7 @@ else
 fi
 
 # Backend Transaccional - Checkout (Puerto 3004)
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/checkout-lambda"
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/checkout-aws-lambda"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     nohup sam local start-api --port 3004 --container-host host.docker.internal > sam-backend-checkout.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.checkout_api.pid"
@@ -71,7 +71,7 @@ else
 fi
 
 # Backend Transaccional - Seats (Puerto 3005)
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/seats-lambda"
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/seats-aws-lambda"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     nohup sam local start-api --port 3005 --container-host host.docker.internal > sam-backend-seats.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.seats_api.pid"
@@ -80,7 +80,7 @@ else
 fi
 
 # Backend Transaccional - Tickets (Puerto 3006)
-cd "$BASE_DIR/demo-ticketing-backend/lambdas/tickets-lambda"
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/tickets-aws-lambda"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     nohup sam local start-api --port 3006 --container-host host.docker.internal > sam-backend-tickets.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.tickets_api.pid"
