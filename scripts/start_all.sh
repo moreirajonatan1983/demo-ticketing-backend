@@ -21,14 +21,14 @@ fi
 
 # 1. Construcción de Binarios
 echo -e "${GREEN}>>> [1/3] Construyendo Backend (Go/Node) con AWS SAM...${NC}"
-cd "$BASE_DIR/demo-ticketing-backend/services/events" 
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/events-lambda" 
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     sam build > build-backend-events.log 2>&1
 else
     echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en events. Omitiendo SAM build...${NC}"
 fi
 
-cd "$BASE_DIR/demo-ticketing-backend/services/checkout" 
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/checkout-lambda" 
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     sam build > build-backend-checkout.log 2>&1
 else
@@ -39,7 +39,7 @@ fi
 echo -e "${BLUE}>>> [2/3] Levantando simuladores de API Gateway...${NC}"
 
 # Backend Transaccional - Events (Puerto 3000)
-cd "$BASE_DIR/demo-ticketing-backend/services/events"
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/events-lambda"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     nohup sam local start-api --port 3000 --container-host host.docker.internal > sam-backend-events.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.backend_api.pid"
@@ -48,7 +48,7 @@ else
 fi
 
 # Backend Transaccional - Checkout (Puerto 3004)
-cd "$BASE_DIR/demo-ticketing-backend/services/checkout"
+cd "$BASE_DIR/demo-ticketing-backend/lambdas/checkout-lambda"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
     nohup sam local start-api --port 3004 --container-host host.docker.internal > sam-backend-checkout.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.checkout_api.pid"
