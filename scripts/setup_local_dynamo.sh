@@ -9,6 +9,26 @@ export LOCALSTACK_ENDPOINT="http://localhost:4566"
 echo "Creating S3 Bucket 'ticketera-images-local'..."
 aws --endpoint-url $LOCALSTACK_ENDPOINT s3 mb s3://ticketera-images-local || echo "Bucket already exists."
 
+echo "Creating SQS queue 'ticket-purchased-queue'..."
+aws --endpoint-url $LOCALSTACK_ENDPOINT sqs create-queue \
+    --queue-name ticket-purchased-queue \
+    || echo "Queue already exists."
+
+echo "Creating SQS DLQ 'ticket-purchased-dlq'..."
+aws --endpoint-url $LOCALSTACK_ENDPOINT sqs create-queue \
+    --queue-name ticket-purchased-dlq \
+    || echo "DLQ already exists."
+
+echo "Creating SNS topic 'ticketera-notifications'..."
+aws --endpoint-url $LOCALSTACK_ENDPOINT sns create-topic \
+    --name ticketera-notifications \
+    || echo "SNS topic already exists."
+
+echo "Creating EventBridge event bus 'ticketera-events'..."
+aws --endpoint-url $LOCALSTACK_ENDPOINT events create-event-bus \
+    --name ticketera-events \
+    || echo "Event bus already exists."
+
 echo "Creating EventsTable..."
 aws dynamodb create-table \
     --table-name EventsTable \
