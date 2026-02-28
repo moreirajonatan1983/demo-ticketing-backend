@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/demoticketing/events/internal/adapters/handlers"
@@ -26,7 +27,15 @@ func main() {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}
 
-	client := dynamodb.NewFromConfig(cfg)
+	var client *dynamodb.Client
+	endpoint := os.Getenv("AWS_ENDPOINT_URL")
+	if endpoint != "" {
+		client = dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+			o.BaseEndpoint = aws.String(endpoint)
+		})
+	} else {
+		client = dynamodb.NewFromConfig(cfg)
+	}
 	tableName := os.Getenv("EVENTS_TABLE_NAME")
 	if tableName == "" {
 		// Fallback for local testing if not provided
