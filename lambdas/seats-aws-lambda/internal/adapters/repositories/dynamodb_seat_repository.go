@@ -63,3 +63,53 @@ func (r *dynamoDBSeatRepository) GetSeatsByEvent(eventId string) ([]domain.Seat,
 
 	return seats, nil
 }
+
+func (r *dynamoDBSeatRepository) ReserveSeat(eventId string, seatId string) error {
+	_, err := r.client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName: aws.String(r.tableName),
+		Key: map[string]types.AttributeValue{
+			"event_id": &types.AttributeValueMemberS{Value: eventId},
+			"seat_id":  &types.AttributeValueMemberS{Value: seatId},
+		},
+		UpdateExpression:    aws.String("SET #s = :processing"),
+		ConditionExpression: aws.String("#s = :available OR attribute_not_exists(#s)"),
+		ExpressionAttributeNames: map[string]string{
+			"#s": "status",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":processing": &types.AttributeValueMemberS{Value: "processing"},
+			":available":  &types.AttributeValueMemberS{Value: "available"},
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to reserve seat or it was not available: %w", err)
+	}
+
+	return nil
+}
+
+func (r *dynamoDBSeatRepository) ReleaseSeat(eventId string, seatId string) error {
+	_, err := r.client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName: aws.String(r.tableName),
+		Key: map[string]types.AttributeValue{
+			"event_id": &types.AttributeValueMemberS{Value: eventId},
+			"seat_id":  &types.AttributeValueMemberS{Value: seatId},
+		},
+		UpdateExpression:    aws.String("SET #s = :available"),
+		ConditionExpression: aws.String("#s = :processing"),
+		ExpressionAttributeNames: map[string]string{
+			"#s": "status",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":processing": &types.AttributeValueMemberS{Value: "processing"},
+			":available":  &types.AttributeValueMemberS{Value: "available"},
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to release seat or it wasn't in processing state: %w", err)
+	}
+
+	return nil
+}

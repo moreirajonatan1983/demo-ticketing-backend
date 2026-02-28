@@ -16,3 +16,11 @@ func NewSeatService(repo ports.SeatRepository) *SeatService {
 func (s *SeatService) GetSeatsForEvent(eventId string) ([]domain.Seat, error) {
 	return s.repo.GetSeatsByEvent(eventId)
 }
+
+func (s *SeatService) ReserveSeat(eventId string, seatId string) error {
+	return s.repo.ReserveSeat(eventId, seatId)
+}
+
+func (s *SeatService) ReleaseSeat(eventId string, seatId string) error {
+	return s.repo.ReleaseSeat(eventId, seatId)
+}

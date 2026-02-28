@@ -44,17 +44,48 @@ func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (
 	if !ok {
 		return events.APIGatewayProxyResponse{StatusCode: http.StatusBadRequest, Headers: headers, Body: `{"error": "Missing eventId"}`}, nil
 	}
+	seatId, okSeat := request.PathParameters["seatId"]
 
-	seats, err := h.service.GetSeatsForEvent(eventId)
-	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError, Headers: headers, Body: `{"error": "Failed to get seats"}`}, nil
+	// Reserve handler
+	if request.HTTPMethod == "POST" && request.Resource == "/events/{eventId}/seats/{seatId}/reserve" {
+		if !okSeat {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusBadRequest, Headers: headers, Body: `{"error": "Missing seatId"}`}, nil
+		}
+		err := h.service.ReserveSeat(eventId, seatId)
+		if err != nil {
+			// In a real scenario we could check if it's a conflict vs internal server error
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusConflict, Headers: headers, Body: `{"error": "Seat not available"}`}, nil
+		}
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: `{"message": "Seat reserved"}`}, nil
 	}
 
-	body, _ := json.Marshal(seats)
+	// Release handler
+	if request.HTTPMethod == "POST" && request.Resource == "/events/{eventId}/seats/{seatId}/release" {
+		if !okSeat {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusBadRequest, Headers: headers, Body: `{"error": "Missing seatId"}`}, nil
+		}
+		err := h.service.ReleaseSeat(eventId, seatId)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError, Headers: headers, Body: `{"error": "Failed to release seat"}`}, nil
+		}
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: `{"message": "Seat released"}`}, nil
+	}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Headers:    headers,
-		Body:       string(body),
-	}, nil
+	// GET seats handler
+	if request.HTTPMethod == "GET" {
+		seats, err := h.service.GetSeatsForEvent(eventId)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError, Headers: headers, Body: `{"error": "Failed to get seats"}`}, nil
+		}
+
+		body, _ := json.Marshal(seats)
+
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusOK,
+			Headers:    headers,
+			Body:       string(body),
+		}, nil
+	}
+
+	return events.APIGatewayProxyResponse{StatusCode: http.StatusMethodNotAllowed, Headers: headers, Body: `{"error": "Method not allowed"}`}, nil
 }
