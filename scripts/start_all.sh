@@ -21,23 +21,39 @@ fi
 
 # 1. Construcción de Binarios
 echo -e "${GREEN}>>> [1/3] Construyendo Backend (Go/Node) con AWS SAM...${NC}"
-cd "$BASE_DIR/demo-ticketing-backend" 
+cd "$BASE_DIR/demo-ticketing-backend/services/events" 
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
-    sam build > build-backend.log 2>&1
+    sam build > build-backend-events.log 2>&1
 else
-    echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado. Omitiendo SAM build...${NC}"
+    echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en events. Omitiendo SAM build...${NC}"
+fi
+
+cd "$BASE_DIR/demo-ticketing-backend/services/checkout" 
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    sam build > build-backend-checkout.log 2>&1
+else
+    echo -e "${RED}Aviso: template.yaml no encontrado o Docker apagado en checkout. Omitiendo SAM build...${NC}"
 fi
 
 # 2. Levantar APIs en Segundo Plano
 echo -e "${BLUE}>>> [2/3] Levantando simuladores de API Gateway...${NC}"
 
-# Backend Transaccional (Puerto 3000)
-cd "$BASE_DIR/demo-ticketing-backend"
+# Backend Transaccional - Events (Puerto 3000)
+cd "$BASE_DIR/demo-ticketing-backend/services/events"
 if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
-    nohup sam local start-api --port 3000 --container-host host.docker.internal > sam-backend.log 2>&1 &
+    nohup sam local start-api --port 3000 --container-host host.docker.internal > sam-backend-events.log 2>&1 &
     echo $! > "$SCRIPTS_DIR/.backend_api.pid"
 else
-    echo -e "${RED}Aviso: Omitiendo start-api de backend (Puerto 3000).${NC}"
+    echo -e "${RED}Aviso: Omitiendo start-api de events (Puerto 3000).${NC}"
+fi
+
+# Backend Transaccional - Checkout (Puerto 3004)
+cd "$BASE_DIR/demo-ticketing-backend/services/checkout"
+if [ "$DOCKER_RUNNING" = true ] && [ -f "template.yaml" ]; then
+    nohup sam local start-api --port 3004 --container-host host.docker.internal > sam-backend-checkout.log 2>&1 &
+    echo $! > "$SCRIPTS_DIR/.checkout_api.pid"
+else
+    echo -e "${RED}Aviso: Omitiendo start-api de checkout (Puerto 3004).${NC}"
 fi
 
 # Auth Backend (Puerto 3003 - Reubicado para dejar 3001 libre a Frontend)
@@ -68,9 +84,10 @@ echo -e "${BLUE}================================================================
 echo -e "${GREEN}¡Ticketera iniciada en background!${NC}"
 echo -e "Endpoints Locales:"
 echo -e " 🚀 Frontend (Vite):       http://localhost:3001"
-echo -e " 📦 Backend Core (SAM):    http://localhost:3000"
+echo -e " 📦 Backend Core (Events): http://localhost:3000"
+echo -e " 📦 Backend Core (CheckOut): http://localhost:3004"
 echo -e " 🔐 Auth Backend (Mock):   http://localhost:3003"
 echo -e " ☕ Worker API (Mock):     http://localhost:3002"
 echo -e "${BLUE}================================================================${NC}"
-echo -e "Logs disponibles: demo-ticketing-backend/sam-backend.log y demo-ticketing-web/web.log"
+echo -e "Logs disponibles en directorios de servicios."
 echo -e "Usa './scripts/stop_all.sh' para cerrar todos los procesos de forma limpia."
