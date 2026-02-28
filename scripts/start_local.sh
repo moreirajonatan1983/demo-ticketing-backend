@@ -2,14 +2,14 @@
 
 # Make sure Docker is running
 echo "Starting DynamoDB Local Container..."
-docker-compose up -d
+cd .. && docker-compose up -d && cd scripts
 
 echo "Running migrations / seeds..."
 sleep 2 # wait for Dynamodb
 ./setup_local_dynamo.sh
 
 echo "Building all Lambdas..."
-cd lambdas/events-aws-lambda && GOOS=linux GOARCH=arm64 go build -o bootstrap cmd/api/main.go
+cd ../lambdas/events-aws-lambda && GOOS=linux GOARCH=arm64 go build -o bootstrap cmd/api/main.go
 cd ../shows-aws-lambda && GOOS=linux GOARCH=arm64 go build -o bootstrap cmd/api/main.go
 cd ../seats-aws-lambda && GOOS=linux GOARCH=arm64 go build -o bootstrap cmd/api/main.go
 cd ../checkout-aws-lambda && GOOS=linux GOARCH=arm64 go build -o bootstrap cmd/api/main.go

@@ -49,8 +49,6 @@ export TICKETS_TABLE_NAME="TicketsTable"
 export AWS_ENDPOINT_URL="http://localhost:8000"
 
 # Build and run the seed script!
-cd scripts
 go run seed_dynamo.go
-cd ..
 
 echo "Done!"
