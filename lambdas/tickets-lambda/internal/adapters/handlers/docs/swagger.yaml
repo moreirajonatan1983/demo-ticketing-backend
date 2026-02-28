@@ -1,0 +1,52 @@
+basePath: /
+definitions:
+  domain.Ticket:
+    properties:
+      date:
+        type: string
+      event_name:
+        type: string
+      id:
+        type: string
+      location:
+        type: string
+      sector:
+        type: string
+      status:
+        description: PAID, PROCESSING
+        type: string
+    type: object
+host: localhost:3006
+info:
+  contact: {}
+  description: Ticketera Cloud Tickets Microservice API
+  title: Tickets API
+  version: "1.0"
+paths:
+  /tickets/me:
+    get:
+      description: Retrieve real-time purchased tickets for the logged user
+      parameters:
+      - description: User ID
+        in: query
+        name: userId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Ticket'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user tickets
+      tags:
+      - tickets
+swagger: "2.0"

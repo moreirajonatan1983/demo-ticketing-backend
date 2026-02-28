@@ -33,3 +33,10 @@ Resources:
               Ref: CheckoutApi
             Path: /checkout
             Method: POST
+        GetSwagger:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: CheckoutApi
+            Path: /swagger.json
+            Method: GET

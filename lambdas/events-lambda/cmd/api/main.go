@@ -7,6 +7,12 @@ import (
 	"github.com/demoticketing/events/internal/core/services"
 )
 
+// @title Events API
+// @version 1.0
+// @description Ticketera Cloud Events Microservice API
+// @host localhost:3000
+// @BasePath /
+
 func main() {
 	// 1. Dependency Injection setup
 	repo := repositories.NewMockEventRepository()

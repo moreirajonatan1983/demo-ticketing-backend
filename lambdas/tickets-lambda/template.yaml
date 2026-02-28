@@ -34,3 +34,9 @@ Resources:
             RestApiId: !Ref TicketsApi
             Path: /tickets/me
             Method: GET
+        GetSwagger:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TicketsApi
+            Path: /swagger.json
+            Method: GET

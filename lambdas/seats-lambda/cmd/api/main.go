@@ -7,6 +7,12 @@ import (
 	"github.com/demoticketing/seats/internal/core/services"
 )
 
+// @title Seats API
+// @version 1.0
+// @description Ticketera Cloud Seats Microservice API
+// @host localhost:3005
+// @BasePath /
+
 func main() {
 	repo := repositories.NewMockSeatRepository()
 	service := services.NewSeatService(repo)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	_ "embed"
 	"encoding/json"
 	"net/http"
 
@@ -12,15 +13,30 @@ type HTTPHandler struct {
 	service ports.TicketService
 }
 
+//go:embed docs/swagger.json
+var docsJSON []byte
+
 func NewHTTPHandler(service ports.TicketService) *HTTPHandler {
 	return &HTTPHandler{service: service}
 }
 
+// @Summary Get user tickets
+// @Description Retrieve real-time purchased tickets for the logged user
+// @Tags tickets
+// @Produce json
+// @Param userId query string false "User ID"
+// @Success 200 {array} domain.Ticket
+// @Failure 500 {object} map[string]string
+// @Router /tickets/me [get]
 func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{
 		"Access-Control-Allow-Origin":  "*",
 		"Access-Control-Allow-Methods": "GET, OPTIONS",
 		"Content-Type":                 "application/json",
+	}
+
+	if request.Path == "/swagger.json" {
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: string(docsJSON)}, nil
 	}
 
 	// Assuming a mock logged in user ID via arbitrary query parameter for now

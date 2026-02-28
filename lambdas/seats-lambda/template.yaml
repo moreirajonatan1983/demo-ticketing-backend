@@ -34,3 +34,9 @@ Resources:
             RestApiId: !Ref SeatsApi
             Path: /events/{eventId}/seats
             Method: GET
+        GetSwagger:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SeatsApi
+            Path: /swagger.json
+            Method: GET

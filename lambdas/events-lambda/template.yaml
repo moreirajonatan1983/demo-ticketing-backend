@@ -40,3 +40,9 @@ Resources:
             RestApiId: !Ref EventsApi
             Path: /events/{id}
             Method: GET
+        GetSwagger:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EventsApi
+            Path: /swagger.json
+            Method: GET
