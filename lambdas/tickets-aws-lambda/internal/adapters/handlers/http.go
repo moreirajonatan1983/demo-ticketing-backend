@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/demoticketing/tickets/internal/core/domain"
 	"github.com/demoticketing/tickets/internal/core/ports"
 )
 
@@ -39,22 +40,41 @@ func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (
 		return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: string(docsJSON)}, nil
 	}
 
-	// Assuming a mock logged in user ID via arbitrary query parameter for now
-	userId := request.QueryStringParameters["userId"]
-	if userId == "" {
-		userId = "mock-user-123" // Fallback to mock user if nothing is passed
+	// POST /tickets handler
+	if request.HTTPMethod == "POST" && request.Resource == "/tickets" {
+		var ticket domain.Ticket
+		if err := json.Unmarshal([]byte(request.Body), &ticket); err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusBadRequest, Headers: headers, Body: `{"error": "Invalid JSON"}`}, nil
+		}
+
+		err := h.service.CreateTicket(ticket)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError, Headers: headers, Body: `{"error": "Failed to create ticket"}`}, nil
+		}
+
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusCreated, Headers: headers, Body: `{"message": "Ticket created"}`}, nil
 	}
 
-	tickets, err := h.service.GetMyTickets(userId)
-	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError, Headers: headers, Body: `{"error": "Failed to get tickets"}`}, nil
+	// GET /tickets/me handler
+	if request.HTTPMethod == "GET" && request.Resource == "/tickets/me" {
+		userId := request.QueryStringParameters["userId"]
+		if userId == "" {
+			userId = "mock-user-123" // Fallback to mock user if nothing is passed
+		}
+
+		tickets, err := h.service.GetTicketsForUser(userId)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError, Headers: headers, Body: `{"error": "Failed to get tickets"}`}, nil
+		}
+
+		body, _ := json.Marshal(tickets)
+
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusOK,
+			Headers:    headers,
+			Body:       string(body),
+		}, nil
 	}
 
-	body, _ := json.Marshal(tickets)
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Headers:    headers,
-		Body:       string(body),
-	}, nil
+	return events.APIGatewayProxyResponse{StatusCode: http.StatusMethodNotAllowed, Headers: headers, Body: `{"error": "Method not allowed"}`}, nil
 }

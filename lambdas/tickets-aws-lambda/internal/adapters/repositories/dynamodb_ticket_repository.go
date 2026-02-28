@@ -66,3 +66,30 @@ func (r *dynamoDBTicketRepository) GetTicketsByUser(userId string) ([]domain.Tic
 
 	return tickets, nil
 }
+
+func (r *dynamoDBTicketRepository) CreateTicket(ticket domain.Ticket) error {
+	dto := ticketDTO{
+		UserID:    ticket.UserID,
+		TicketID:  ticket.ID,
+		EventName: ticket.EventName,
+		Date:      ticket.Date,
+		Location:  ticket.Location,
+		Sector:    ticket.Sector,
+		Status:    ticket.Status,
+	}
+
+	av, err := attributevalue.MarshalMap(dto)
+	if err != nil {
+		return fmt.Errorf("failed to marshal ticket to dynamodb av: %w", err)
+	}
+
+	_, err = r.client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: aws.String(r.tableName),
+		Item:      av,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to put ticket into dynamodb: %w", err)
+	}
+
+	return nil
+}

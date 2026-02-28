@@ -40,6 +40,12 @@ Resources:
             RestApiId: !Ref TicketsApi
             Path: /tickets/me
             Method: GET
+        CreateTicket:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TicketsApi
+            Path: /tickets
+            Method: POST
         GetSwagger:
           Type: Api
           Properties:
@@ -48,9 +54,16 @@ Resources:
             Method: GET
 
   TicketsTable:
-    Type: AWS::Serverless::SimpleTable
+    Type: AWS::DynamoDB::Table
     Properties:
-      PrimaryKey:
-        Name: user_id
-        Type: String
       BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: ticket_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: ticket_id
+          KeyType: RANGE

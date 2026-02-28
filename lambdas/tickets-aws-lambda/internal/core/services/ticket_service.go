@@ -13,6 +13,10 @@ func NewTicketService(repo ports.TicketRepository) *TicketService {
 	return &TicketService{repo: repo}
 }
 
-func (s *TicketService) GetMyTickets(userId string) ([]domain.Ticket, error) {
+func (s *TicketService) GetTicketsForUser(userId string) ([]domain.Ticket, error) {
 	return s.repo.GetTicketsByUser(userId)
+}
+
+func (s *TicketService) CreateTicket(ticket domain.Ticket) error {
+	return s.repo.CreateTicket(ticket)
 }
