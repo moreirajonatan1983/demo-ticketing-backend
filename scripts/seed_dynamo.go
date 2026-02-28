@@ -3,13 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 func main() {
@@ -35,8 +39,19 @@ func main() {
 		showsTable = "shows-aws-lambda-ShowsTable-123456"
 	}
 
-	fmt.Println("Seeding Events...")
-	seedEvents(client, eventsTable)
+	fmt.Println("Seeding Events (with S3 Images)...")
+
+	// Create S3 client
+	s3Endpoint := os.Getenv("LOCALSTACK_ENDPOINT")
+	if s3Endpoint == "" {
+		s3Endpoint = "http://localhost:4566"
+	}
+	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(s3Endpoint)
+		o.UsePathStyle = true
+	})
+
+	seedEvents(client, s3Client, eventsTable)
 
 	fmt.Println("Seeding Shows...")
 	seedShows(client, showsTable)
@@ -47,41 +62,76 @@ func main() {
 	fmt.Println("Seeding Complete!")
 }
 
-func seedEvents(client *dynamodb.Client, tableName string) {
-	events := []map[string]types.AttributeValue{
+func seedEvents(client *dynamodb.Client, s3Client *s3.Client, tableName string) {
+	bucketName := "ticketera-images-local"
+
+	events := []map[string]interface{}{
 		{
-			"id":     &types.AttributeValueMemberS{Value: "1"},
-			"title":  &types.AttributeValueMemberS{Value: "COLDPLAY - Music of the Spheres"},
-			"date":   &types.AttributeValueMemberS{Value: "15 Octubre 2026"},
-			"venue":  &types.AttributeValueMemberS{Value: "Estadio Nacional"},
-			"image":  &types.AttributeValueMemberS{Value: "https://images.unsplash.com/photo-1540039155733-d7696d819924?auto=format&fit=crop&w=800&q=80"},
-			"status": &types.AttributeValueMemberS{Value: "Sold Out"},
+			"id":     "1",
+			"title":  "COLDPLAY - Music of the Spheres",
+			"date":   "15 Octubre 2026",
+			"venue":  "Estadio Nacional",
+			"image":  "https://images.unsplash.com/photo-1540039155733-d7696d819924?auto=format&fit=crop&w=800&q=80",
+			"status": "Sold Out",
+			"key":    "events/1/cover.jpg",
 		},
 		{
-			"id":     &types.AttributeValueMemberS{Value: "2"},
-			"title":  &types.AttributeValueMemberS{Value: "The Weeknd - After Hours"},
-			"date":   &types.AttributeValueMemberS{Value: "02 Noviembre 2026"},
-			"venue":  &types.AttributeValueMemberS{Value: "Movistar Arena"},
-			"image":  &types.AttributeValueMemberS{Value: "https://images.unsplash.com/photo-1493225457124-a1a2a5f5f4b5?auto=format&fit=crop&w=800&q=80"},
-			"status": &types.AttributeValueMemberS{Value: "Ultimos Tickets"},
+			"id":     "2",
+			"title":  "The Weeknd - After Hours",
+			"date":   "02 Noviembre 2026",
+			"venue":  "Movistar Arena",
+			"image":  "https://images.unsplash.com/photo-1493225457124-a1a2a5f5f4b5?auto=format&fit=crop&w=800&q=80",
+			"status": "Ultimos Tickets",
+			"key":    "events/2/cover.jpg",
 		},
 		{
-			"id":     &types.AttributeValueMemberS{Value: "3"},
-			"title":  &types.AttributeValueMemberS{Value: "Dua Lipa - Radical Optimism"},
-			"date":   &types.AttributeValueMemberS{Value: "10 Diciembre 2026"},
-			"venue":  &types.AttributeValueMemberS{Value: "Estadio Bicentenario"},
-			"image":  &types.AttributeValueMemberS{Value: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=800&q=80"},
-			"status": &types.AttributeValueMemberS{Value: "Disponible"},
+			"id":     "3",
+			"title":  "Dua Lipa - Radical Optimism",
+			"date":   "10 Diciembre 2026",
+			"venue":  "Estadio Bicentenario",
+			"image":  "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&w=800&q=80",
+			"status": "Disponible",
+			"key":    "events/3/cover.jpg",
 		},
 	}
 
 	for _, item := range events {
-		_, err := client.PutItem(context.TODO(), &dynamodb.PutItemInput{
-			TableName: aws.String(tableName),
-			Item:      item,
+		// Download image
+		resp, err := http.Get(item["image"].(string))
+		if err != nil {
+			log.Printf("Failed to download image %s: %v", item["image"], err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+
+		// Upload to S3
+		_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(item["key"].(string)),
+			Body:   strings.NewReader(string(bodyBytes)),
 		})
 		if err != nil {
-			log.Printf("Failed to insert event %s: %v", item["id"].(*types.AttributeValueMemberS).Value, err)
+			log.Printf("Failed to upload to S3: %v", err)
+		}
+
+		// Insert to Dynamo with the key instead of external URL
+		dynamoItem := map[string]types.AttributeValue{
+			"id":     &types.AttributeValueMemberS{Value: item["id"].(string)},
+			"title":  &types.AttributeValueMemberS{Value: item["title"].(string)},
+			"date":   &types.AttributeValueMemberS{Value: item["date"].(string)},
+			"venue":  &types.AttributeValueMemberS{Value: item["venue"].(string)},
+			"image":  &types.AttributeValueMemberS{Value: item["key"].(string)}, // stored in Dynamo!!
+			"status": &types.AttributeValueMemberS{Value: item["status"].(string)},
+		}
+
+		_, err = client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+			TableName: aws.String(tableName),
+			Item:      dynamoItem,
+		})
+		if err != nil {
+			log.Printf("Failed to insert event %s: %v", item["id"], err)
 		}
 	}
 }

@@ -4,6 +4,10 @@ export AWS_REGION="us-east-1"
 export AWS_ACCESS_KEY_ID="test"
 export AWS_SECRET_ACCESS_KEY="test"
 export DYNAMODB_ENDPOINT="http://localhost:8000"
+export LOCALSTACK_ENDPOINT="http://localhost:4566"
+
+echo "Creating S3 Bucket 'ticketera-images-local'..."
+aws --endpoint-url $LOCALSTACK_ENDPOINT s3 mb s3://ticketera-images-local || echo "Bucket already exists."
 
 echo "Creating EventsTable..."
 aws dynamodb create-table \
