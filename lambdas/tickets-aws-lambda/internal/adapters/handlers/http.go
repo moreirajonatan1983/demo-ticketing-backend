@@ -12,13 +12,14 @@ import (
 
 type HTTPHandler struct {
 	service ports.TicketService
+	storage ports.TicketStorage
 }
 
 //go:embed docs/swagger.json
 var docsJSON []byte
 
-func NewHTTPHandler(service ports.TicketService) *HTTPHandler {
-	return &HTTPHandler{service: service}
+func NewHTTPHandler(service ports.TicketService, storage ports.TicketStorage) *HTTPHandler {
+	return &HTTPHandler{service: service, storage: storage}
 }
 
 // @Summary Get user tickets
@@ -74,6 +75,20 @@ func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (
 			Headers:    headers,
 			Body:       string(body),
 		}, nil
+	}
+
+	// GET /tickets/{ticketId}/download → presigned S3 URL for PDF
+	if request.HTTPMethod == "GET" && len(request.PathParameters) > 0 {
+		ticketId, ok := request.PathParameters["ticketId"]
+		if ok && request.Resource == "/tickets/{ticketId}/download" {
+			url, err := h.storage.GetPresignedDownloadURL(ticketId)
+			if err != nil {
+				body, _ := json.Marshal(map[string]string{"error": "PDF not found or not ready yet"})
+				return events.APIGatewayProxyResponse{StatusCode: http.StatusNotFound, Headers: headers, Body: string(body)}, nil
+			}
+			body, _ := json.Marshal(map[string]string{"downloadUrl": url})
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: string(body)}, nil
+		}
 	}
 
 	return events.APIGatewayProxyResponse{StatusCode: http.StatusMethodNotAllowed, Headers: headers, Body: `{"error": "Method not allowed"}`}, nil
