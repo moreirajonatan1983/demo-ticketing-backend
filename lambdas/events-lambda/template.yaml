@@ -27,6 +27,12 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
+      Environment:
+        Variables:
+          EVENTS_TABLE_NAME: !Ref EventsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventsTable
       Events:
         GetEvents:
           Type: Api
@@ -43,6 +49,15 @@ Resources:
         GetSwagger:
           Type: Api
           Properties:
+          Properties:
             RestApiId: !Ref EventsApi
             Path: /swagger.json
             Method: GET
+
+  EventsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      BillingMode: PAY_PER_REQUEST

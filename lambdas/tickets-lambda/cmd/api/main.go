@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
+	"log"
+	"os"
+
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/demoticketing/tickets/internal/adapters/handlers"
 	"github.com/demoticketing/tickets/internal/adapters/repositories"
 	"github.com/demoticketing/tickets/internal/core/services"
@@ -14,7 +20,18 @@ import (
 // @BasePath /
 
 func main() {
-	repo := repositories.NewMockTicketRepository()
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+
+	client := dynamodb.NewFromConfig(cfg)
+	tableName := os.Getenv("TICKETS_TABLE_NAME")
+	if tableName == "" {
+		tableName = "TicketsTable"
+	}
+
+	repo := repositories.NewDynamoDBTicketRepository(client, tableName)
 	service := services.NewTicketService(repo)
 	handler := handlers.NewHTTPHandler(service)
 

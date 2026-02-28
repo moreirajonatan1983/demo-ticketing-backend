@@ -27,6 +27,12 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
+      Environment:
+        Variables:
+          TICKETS_TABLE_NAME: !Ref TicketsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TicketsTable
       Events:
         GetMyTickets:
           Type: Api
@@ -40,3 +46,11 @@ Resources:
             RestApiId: !Ref TicketsApi
             Path: /swagger.json
             Method: GET
+
+  TicketsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: user_id
+        Type: String
+      BillingMode: PAY_PER_REQUEST
