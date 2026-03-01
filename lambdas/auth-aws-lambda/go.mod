@@ -1,6 +1,6 @@
 module github.com/demoticketing/auth
 
-go 1.23
+go 1.24.0
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.10
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.33
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.56.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.45.0
 )
 
 require (
@@ -25,6 +25,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.7 // indirect
-	github.com/aws/aws-xray-sdk-go v1.8.5 // indirect
 	github.com/aws/smithy-go v1.24.1 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
 )
