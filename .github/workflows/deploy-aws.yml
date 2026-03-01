@@ -1,0 +1,40 @@
+name: Deploy Core Serverless APIs to AWS
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write 
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Configure AWS Credentials from Identity Provider (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_CORE_BACKEND }}
+          aws-region: us-east-1
+
+      - name: Run SAM Build
+        run: scripts/setup_saga.sh build
+        # Asumiendo que setup_saga tiene una flag 'build', si no: 'sam build --template lambdas/events-aws-lambda/template.yaml'
+        # Idealmente un nuevo archivo 'template.yaml' englobaría las sub-capas o harías multiples `sam deploy`
+        
+      # NOTA PARA AWS FREE TIER: 
+      # Lambda: 1 Millon Req Gratis, 400.000 GB-segundos Gratis.
+      # SQS y Step Functions: Capas gratuitas muy generosas (> 1M/4k transc.)
