@@ -1,0 +1,10 @@
+name: seats-aws-lambda
+description: Concurrency and constraints handler for physical event seats.
+current_version: "1.0.0"
+changelog:
+  - version: "1.0.0"
+    date: "2026-03-01"
+    changes:
+      - Initial concurrency mapping design.
+dependencies:
+  - aws-lambda-go: "~> 1.0"

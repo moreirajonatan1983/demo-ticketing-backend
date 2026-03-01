@@ -1,0 +1,10 @@
+name: events-aws-lambda
+description: Microservice for managing and listing public Events.
+current_version: "1.0.0"
+changelog:
+  - version: "1.0.0"
+    date: "2026-03-01"
+    changes:
+      - Initial version for basic read integration.
+dependencies:
+  - aws-lambda-go: "~> 1.0"
