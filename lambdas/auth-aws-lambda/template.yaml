@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ticketera Cloud - Auth Service
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+  Api:
+    Cors:
+      AllowMethods: "'POST,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
+
+Resources:
+  AuthApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Auth:
+        ApiKeyRequired: false
+      Cors:
+        AllowMethods: "'POST,GET,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Api-Key'"
+        AllowOrigin: "'*'"
+
+
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+          JWT_SECRET: !Sub "ticketera-local-secret-${AWS::StackName}"
+          AWS_ENDPOINT_URL: ""
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        Register:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AuthApi
+            Path: /auth/register
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+        Login:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AuthApi
+            Path: /auth/login
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+        ForgotPassword:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AuthApi
+            Path: /auth/forgot-password
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+        Health:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AuthApi
+            Path: /health
+            Method: GET
+            Auth:
+              ApiKeyRequired: false
+
+
+  UsersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: email
+        Type: String

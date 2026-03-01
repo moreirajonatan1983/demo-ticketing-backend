@@ -15,11 +15,14 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: dev
+      Auth:
+        ApiKeyRequired: false
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
-        
+
+
   ShowsFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -40,12 +43,16 @@ Resources:
             RestApiId: !Ref ShowsApi
             Path: /events/{eventId}/shows
             Method: GET
+            Auth:
+              ApiKeyRequired: true
         GetSwagger:
           Type: Api
           Properties:
             RestApiId: !Ref ShowsApi
             Path: /swagger.json
             Method: GET
+            Auth:
+              ApiKeyRequired: false
 
   ShowsTable:
     Type: AWS::Serverless::SimpleTable
@@ -53,4 +60,4 @@ Resources:
       PrimaryKey:
         Name: event_id
         Type: String
-      BillingMode: PAY_PER_REQUEST
+

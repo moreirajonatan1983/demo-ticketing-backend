@@ -1,0 +1,12 @@
+{
+  "httpMethod": "GET",
+  "path": "/events",
+  "headers": {
+    "x-api-key": "Ao2JZhn150RWlTp736QV4tGqaMHCBfgPKvzSruDE"
+  },
+  "requestContext": {
+    "resourcePath": "/events",
+    "httpMethod": "GET",
+    "stage": "dev"
+  }
+}

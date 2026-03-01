@@ -41,7 +41,15 @@ func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (
 		return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: string(docsJSON)}, nil
 	}
 
-	// POST /tickets handler
+	// @Summary Create a new ticket
+	// @Description Create a ticket in the database and emit event (triggered by SAGA)
+	// @Tags tickets
+	// @Accept json
+	// @Produce json
+	// @Param ticket body domain.Ticket true "Ticket object"
+	// @Success 201 {object} map[string]string
+	// @Failure 400 {object} map[string]string
+	// @Router /tickets [post]
 	if request.HTTPMethod == "POST" && request.Resource == "/tickets" {
 		var ticket domain.Ticket
 		if err := json.Unmarshal([]byte(request.Body), &ticket); err != nil {
@@ -77,7 +85,14 @@ func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (
 		}, nil
 	}
 
-	// GET /tickets/{ticketId}/download → presigned S3 URL for PDF
+	// @Summary Get PDF download URL
+	// @Description Generate a presigned S3 URL for ticket PDF
+	// @Tags tickets
+	// @Produce json
+	// @Param ticketId path string true "Ticket ID"
+	// @Success 200 {object} map[string]string
+	// @Failure 404 {object} map[string]string
+	// @Router /tickets/{ticketId}/download [get]
 	if request.HTTPMethod == "GET" && len(request.PathParameters) > 0 {
 		ticketId, ok := request.PathParameters["ticketId"]
 		if ok && request.Resource == "/tickets/{ticketId}/download" {

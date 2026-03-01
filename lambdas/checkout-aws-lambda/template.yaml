@@ -2,6 +2,12 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Ticketera Cloud - Checkout Service
 
+Parameters:
+  CognitoUserPoolArn:
+    Type: String
+    Default: "arn:aws:cognito-idp:us-east-1:000000000000:userpool/local_UserPool"
+    Description: ARN del Cognito User Pool para validacion JWT
+
 Globals:
   Function:
     Timeout: 5
@@ -15,11 +21,18 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: dev
+      Auth:
+        ApiKeyRequired: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Ref CognitoUserPoolArn
+            Identity:
+              Header: Authorization
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
-        
+
   CheckoutFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -34,9 +47,16 @@ Resources:
             RestApiId: !Ref CheckoutApi
             Path: /checkout
             Method: POST
+            Auth:
+              ApiKeyRequired: true
+              Authorizer: CognitoAuthorizer   # API Key + JWT: endpoint crítico de pago
         GetSwagger:
           Type: Api
           Properties:
             RestApiId: !Ref CheckoutApi
             Path: /swagger.json
             Method: GET
+            Auth:
+              ApiKeyRequired: false
+
+

@@ -13,7 +13,7 @@ services:
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=s3,sqs,sns,events,stepfunctions,lambda
+      - SERVICES=s3,sqs,sns,events,stepfunctions,lambda,apigateway,iam,sts
       - DEBUG=1
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:

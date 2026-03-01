@@ -21,6 +21,17 @@ import (
 // @BasePath /
 
 func main() {
+	// Bypass IMDS hang in local docker
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
+		os.Setenv("AWS_ACCESS_KEY_ID", "test")
+	}
+	if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		os.Setenv("AWS_SECRET_ACCESS_KEY", "test")
+	}
+	if os.Getenv("AWS_REGION") == "" {
+		os.Setenv("AWS_REGION", "us-east-1")
+	}
+
 	// 1. Dependency Injection setup
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {

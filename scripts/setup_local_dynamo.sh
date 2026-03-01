@@ -5,19 +5,28 @@ export AWS_ACCESS_KEY_ID="test"
 export AWS_SECRET_ACCESS_KEY="test"
 export DYNAMODB_ENDPOINT="http://localhost:8000"
 export LOCALSTACK_ENDPOINT="http://localhost:4566"
+export AWS_ENDPOINT_URL="http://localhost:4566"
 
 echo "Creating S3 Bucket 'ticketera-images-local'..."
 aws --endpoint-url $LOCALSTACK_ENDPOINT s3 mb s3://ticketera-images-local || echo "Bucket already exists."
 
-echo "Creating SQS queue 'ticket-purchased-queue'..."
+echo "Creating SQS DLQ 'ticket-purchased-dlq'..."
+DLQ_URL=$(aws --endpoint-url $LOCALSTACK_ENDPOINT sqs create-queue \
+    --queue-name ticket-purchased-dlq \
+    --query 'QueueUrl' --output text 2>/dev/null) \
+    || DLQ_URL=$(aws --endpoint-url $LOCALSTACK_ENDPOINT sqs get-queue-url --queue-name ticket-purchased-dlq --query 'QueueUrl' --output text)
+
+DLQ_ARN=$(aws --endpoint-url $LOCALSTACK_ENDPOINT sqs get-queue-attributes \
+    --queue-url $DLQ_URL --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)
+
+echo "Creating SQS queue 'ticket-purchased-queue' with RedrivePolicy..."
+# Pasarlo correctamente escapando las comillas dobles que espera AWS
 aws --endpoint-url $LOCALSTACK_ENDPOINT sqs create-queue \
     --queue-name ticket-purchased-queue \
-    || echo "Queue already exists."
-
-echo "Creating SQS DLQ 'ticket-purchased-dlq'..."
-aws --endpoint-url $LOCALSTACK_ENDPOINT sqs create-queue \
-    --queue-name ticket-purchased-dlq \
-    || echo "DLQ already exists."
+    --attributes '{"RedrivePolicy":"{\"maxReceiveCount\":\"3\", \"deadLetterTargetArn\":\"'"$DLQ_ARN"'\"}"}' \
+    || aws --endpoint-url $LOCALSTACK_ENDPOINT sqs set-queue-attributes \
+    --queue-url $(aws --endpoint-url $LOCALSTACK_ENDPOINT sqs get-queue-url --queue-name ticket-purchased-queue --query 'QueueUrl' --output text) \
+    --attributes '{"RedrivePolicy":"{\"maxReceiveCount\":\"3\", \"deadLetterTargetArn\":\"'"$DLQ_ARN"'\"}"}'
 
 echo "Creating SNS topic 'ticketera-notifications'..."
 aws --endpoint-url $LOCALSTACK_ENDPOINT sns create-topic \
@@ -64,6 +73,16 @@ aws dynamodb create-table \
     --billing-mode PAY_PER_REQUEST \
     --endpoint-url $DYNAMODB_ENDPOINT \
     || echo "Table ShowsTable already exists."
+
+echo "Creating UsersTable (Auth)..."
+aws dynamodb create-table \
+    --table-name UsersTable \
+    --attribute-definitions AttributeName=email,AttributeType=S \
+    --key-schema AttributeName=email,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST \
+    --endpoint-url $DYNAMODB_ENDPOINT \
+    || echo "Table UsersTable already exists."
+
 
 echo "Seeding..."
 export EVENTS_TABLE_NAME="EventsTable"

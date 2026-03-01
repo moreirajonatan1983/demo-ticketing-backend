@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Ticketera Cloud - Seats Service
+Parameters:
+  CognitoUserPoolArn:
+    Type: String
+    Default: arn:aws:cognito-idp:us-east-1:000000000000:userpool/local_UserPool
+    Description: ARN del Cognito User Pool para validacion JWT
 Globals:
   Function:
     Timeout: 5
@@ -13,6 +18,14 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: dev
+      Auth:
+        ApiKeyRequired: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn:
+              Ref: CognitoUserPoolArn
+            Identity:
+              Header: Authorization
       Cors:
         AllowMethods: '''GET,POST,OPTIONS'''
         AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
@@ -25,6 +38,14 @@ Resources:
     Properties:
       CodeUri: SeatsFunction
       Handler: bootstrap
+      Environment:
+        Variables:
+          SEATS_TABLE_NAME:
+            Ref: EventSeatsTable
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: EventSeatsTable
       Events:
         GetSeatsByEventId:
           Type: Api
@@ -33,6 +54,28 @@ Resources:
               Ref: SeatsApi
             Path: /events/{eventId}/seats
             Method: GET
+            Auth:
+              ApiKeyRequired: true
+        ReserveSeat:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: SeatsApi
+            Path: /events/{eventId}/seats/{seatId}/reserve
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+              Authorizer: CognitoAuthorizer
+        ReleaseSeat:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: SeatsApi
+            Path: /events/{eventId}/seats/{seatId}/release
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+              Authorizer: CognitoAuthorizer
         GetSwagger:
           Type: Api
           Properties:
@@ -40,3 +83,19 @@ Resources:
               Ref: SeatsApi
             Path: /swagger.json
             Method: GET
+            Auth:
+              ApiKeyRequired: false
+  EventSeatsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: event_id
+        AttributeType: S
+      - AttributeName: seat_id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: event_id
+        KeyType: HASH
+      - AttributeName: seat_id
+        KeyType: RANGE

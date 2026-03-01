@@ -1,1 +1,6 @@
 *.pid
+.aws-sam/
+*.log
+*.zip
+bootstrap
+*.bak

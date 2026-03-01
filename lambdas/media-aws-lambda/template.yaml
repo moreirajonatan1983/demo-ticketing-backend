@@ -15,11 +15,13 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: dev
+      Auth:
+        ApiKeyRequired: false
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
-        
+
   MediaFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -38,3 +40,6 @@ Resources:
             RestApiId: !Ref MediaApi
             Path: /media/events/{eventId}
             Method: GET
+            Auth:
+              ApiKeyRequired: true
+

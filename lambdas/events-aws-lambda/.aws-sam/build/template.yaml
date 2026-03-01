@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Ticketera Cloud - Events Service
+Parameters:
+  CognitoUserPoolArn:
+    Type: String
+    Default: arn:aws:cognito-idp:us-east-1:000000000000:userpool/local_UserPool
+    Description: ARN del Cognito User Pool para validacion JWT
 Globals:
   Function:
     Timeout: 5
@@ -13,6 +18,14 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: dev
+      Auth:
+        ApiKeyRequired: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn:
+              Ref: CognitoUserPoolArn
+            Identity:
+              Header: Authorization
       Cors:
         AllowMethods: '''GET,POST,OPTIONS'''
         AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
@@ -25,6 +38,18 @@ Resources:
     Properties:
       CodeUri: EventsFunction
       Handler: bootstrap
+      Environment:
+        Variables:
+          EVENTS_TABLE_NAME:
+            Ref: EventsTable
+          AWS_ENDPOINT_URL: ''
+          AWS_ACCESS_KEY_ID: ''
+          AWS_SECRET_ACCESS_KEY: ''
+          AWS_REGION: us-east-1
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: EventsTable
       Events:
         GetEvents:
           Type: Api
@@ -33,6 +58,8 @@ Resources:
               Ref: EventsApi
             Path: /events
             Method: GET
+            Auth:
+              ApiKeyRequired: true
         GetEventById:
           Type: Api
           Properties:
@@ -40,6 +67,18 @@ Resources:
               Ref: EventsApi
             Path: /events/{id}
             Method: GET
+            Auth:
+              ApiKeyRequired: true
+        GetEventLimits:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: EventsApi
+            Path: /events/{id}/limits
+            Method: GET
+            Auth:
+              ApiKeyRequired: true
+              Authorizer: CognitoAuthorizer
         GetSwagger:
           Type: Api
           Properties:
@@ -47,3 +86,11 @@ Resources:
               Ref: EventsApi
             Path: /swagger.json
             Method: GET
+            Auth:
+              ApiKeyRequired: false
+  EventsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String

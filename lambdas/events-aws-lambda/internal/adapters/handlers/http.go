@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/demoticketing/events/internal/core/ports"
@@ -41,6 +42,16 @@ func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (
 	}
 
 	id, hasId := request.PathParameters["id"]
+
+	// B-20: GET /events/{id}/limits — Devuelve restricciones de compra por usuario
+	if hasId && strings.HasSuffix(request.Path, "/limits") {
+		limits, err := h.service.GetEventLimits(id)
+		if err != nil {
+			return events.APIGatewayProxyResponse{StatusCode: http.StatusNotFound, Headers: headers, Body: `{"error": "Event not found"}`}, nil
+		}
+		body, _ := json.Marshal(limits)
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: string(body)}, nil
+	}
 
 	var body []byte
 	var err error

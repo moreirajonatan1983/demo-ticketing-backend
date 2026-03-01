@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-xray-sdk-go/instrumentation/awsv2"
 	"github.com/demoticketing/seats/internal/adapters/handlers"
 	"github.com/demoticketing/seats/internal/adapters/repositories"
 	"github.com/demoticketing/seats/internal/core/services"
@@ -31,9 +32,12 @@ func main() {
 	if endpoint != "" {
 		client = dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
 			o.BaseEndpoint = aws.String(endpoint)
+			awsv2.AWSV2Instrumentor(&o.APIOptions)
 		})
 	} else {
-		client = dynamodb.NewFromConfig(cfg)
+		client = dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+			awsv2.AWSV2Instrumentor(&o.APIOptions)
+		})
 	}
 	tableName := os.Getenv("SEATS_TABLE_NAME")
 	if tableName == "" {

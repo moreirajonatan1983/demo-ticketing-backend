@@ -25,12 +25,14 @@ func NewDynamoDBEventRepository(client *dynamodb.Client, tableName string) ports
 }
 
 type eventDTO struct {
-	ID     string `dynamodbav:"id"`
-	Title  string `dynamodbav:"title"`
-	Date   string `dynamodbav:"date"`
-	Venue  string `dynamodbav:"venue"`
-	Image  string `dynamodbav:"image"`
-	Status string `dynamodbav:"status"`
+	ID                string `dynamodbav:"id"`
+	Title             string `dynamodbav:"title"`
+	Date              string `dynamodbav:"date"`
+	Venue             string `dynamodbav:"venue"`
+	Image             string `dynamodbav:"image"`
+	Status            string `dynamodbav:"status"`
+	Description       string `dynamodbav:"description"`
+	MaxTicketsPerUser int    `dynamodbav:"max_tickets_per_user"`
 }
 
 func (r *dynamoDBEventRepository) GetAll() ([]domain.Event, error) {
@@ -50,12 +52,14 @@ func (r *dynamoDBEventRepository) GetAll() ([]domain.Event, error) {
 	var events []domain.Event
 	for _, dto := range dtos {
 		events = append(events, domain.Event{
-			ID:     dto.ID,
-			Title:  dto.Title,
-			Date:   dto.Date,
-			Venue:  dto.Venue,
-			Image:  dto.Image,
-			Status: dto.Status,
+			ID:                dto.ID,
+			Title:             dto.Title,
+			Date:              dto.Date,
+			Venue:             dto.Venue,
+			Image:             dto.Image,
+			Status:            dto.Status,
+			Description:       dto.Description,
+			MaxTicketsPerUser: dto.MaxTicketsPerUser,
 		})
 	}
 
@@ -84,11 +88,13 @@ func (r *dynamoDBEventRepository) GetByID(id string) (*domain.Event, error) {
 	}
 
 	return &domain.Event{
-		ID:     dto.ID,
-		Title:  dto.Title,
-		Date:   dto.Date,
-		Venue:  dto.Venue,
-		Image:  dto.Image,
-		Status: dto.Status,
+		ID:                dto.ID,
+		Title:             dto.Title,
+		Date:              dto.Date,
+		Venue:             dto.Venue,
+		Image:             dto.Image,
+		Status:            dto.Status,
+		Description:       dto.Description,
+		MaxTicketsPerUser: dto.MaxTicketsPerUser,
 	}, nil
 }
