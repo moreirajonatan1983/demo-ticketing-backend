@@ -41,7 +41,11 @@ func (h *HTTPHandler) HandleHTTPRequest(request events.APIGatewayProxyRequest) (
 		return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Headers: headers, Body: string(docsJSON)}, nil
 	}
 
-	id, hasId := request.PathParameters["id"]
+	// Acepta tanto {eventId} (API Gateway consolidado) como {id} (templates individuales)
+	id, hasId := request.PathParameters["eventId"]
+	if !hasId {
+		id, hasId = request.PathParameters["id"]
+	}
 
 	// B-20: GET /events/{id}/limits — Devuelve restricciones de compra por usuario
 	if hasId && strings.HasSuffix(request.Path, "/limits") {

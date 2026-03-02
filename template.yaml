@@ -1,0 +1,273 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: demo-ticketing backend — todas las Lambdas Go (Events, Shows, Seats, Tickets, Checkout, Media, Auth)
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [stage, prod]
+    Description: Ambiente de despliegue
+  MediaBucketName:
+    Type: String
+    Default: demo-ticketing-media-stage
+    Description: Nombre del bucket S3 para imágenes
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+
+# ===================================================================
+# Para que SAM construya cada Lambda correctamente desde su carpeta
+# ===================================================================
+
+Resources:
+
+  # ======================== EVENTS ========================
+  EventsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: lambdas/events-aws-lambda
+      Handler: bootstrap
+      FunctionName: !Sub "demo-ticketing-events-${Environment}"
+      Environment:
+        Variables:
+          EVENTS_TABLE_NAME: !Ref EventsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventsTable
+      Events:
+        GetEvents:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /events
+            Method: GET
+        GetEventById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /events/{eventId}
+            Method: GET
+        GetEventLimits:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /events/{eventId}/limits
+            Method: GET
+
+  EventsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: !Sub "demo-ticketing-events-${Environment}"
+      PrimaryKey:
+        Name: id
+        Type: String
+
+  # ======================== SHOWS ========================
+  ShowsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: lambdas/shows-aws-lambda
+      Handler: bootstrap
+      FunctionName: !Sub "demo-ticketing-shows-${Environment}"
+      Environment:
+        Variables:
+          SHOWS_TABLE_NAME: !Ref ShowsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ShowsTable
+      Events:
+        GetShowsByEventId:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /events/{eventId}/shows
+            Method: GET
+
+  ShowsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: !Sub "demo-ticketing-shows-${Environment}"
+      PrimaryKey:
+        Name: event_id
+        Type: String
+
+  # ======================== SEATS ========================
+  SeatsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: lambdas/seats-aws-lambda
+      Handler: bootstrap
+      FunctionName: !Sub "demo-ticketing-seats-${Environment}"
+      Environment:
+        Variables:
+          SEATS_TABLE_NAME: !Ref EventSeatsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventSeatsTable
+      Events:
+        GetSeatsByShowId:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /events/{eventId}/seats
+            Method: GET
+        ReserveSeat:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /events/{eventId}/seats/{seatId}/reserve
+            Method: POST
+        ReleaseSeat:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /events/{eventId}/seats/{seatId}/release
+            Method: POST
+
+  EventSeatsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "demo-ticketing-seats-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: event_id
+          AttributeType: S
+        - AttributeName: seat_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: event_id
+          KeyType: HASH
+        - AttributeName: seat_id
+          KeyType: RANGE
+
+  # ======================== TICKETS ========================
+  TicketsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: lambdas/tickets-aws-lambda
+      Handler: bootstrap
+      FunctionName: !Sub "demo-ticketing-tickets-${Environment}"
+      Environment:
+        Variables:
+          TICKETS_TABLE_NAME: !Ref TicketsTable
+          MEDIA_BUCKET_NAME: !Ref MediaBucketName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TicketsTable
+        - S3ReadPolicy:
+            BucketName: !Ref MediaBucketName
+      Events:
+        GetMyTickets:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /tickets/me
+            Method: GET
+        CreateTicket:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /tickets
+            Method: POST
+
+  TicketsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "demo-ticketing-tickets-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: ticket_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: ticket_id
+          KeyType: RANGE
+
+  # ======================== CHECKOUT ========================
+  CheckoutFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: lambdas/checkout-aws-lambda
+      Handler: bootstrap
+      FunctionName: !Sub "demo-ticketing-checkout-${Environment}"
+      Events:
+        PostCheckout:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /checkout
+            Method: POST
+
+  # ======================== MEDIA ========================
+  MediaFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: lambdas/media-aws-lambda
+      Handler: bootstrap
+      FunctionName: !Sub "demo-ticketing-media-${Environment}"
+      Environment:
+        Variables:
+          MEDIA_BUCKET_NAME: !Ref MediaBucketName
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref MediaBucketName
+      Events:
+        GetEventImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoreApi
+            Path: /media/events/{eventId}
+            Method: GET
+
+  # ======================== API GATEWAY CENTRAL ========================
+  CoreApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "demo-ticketing-core-api-${Environment}"
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Api-Key'"
+        AllowOrigin: "'*'"
+
+  # ======================== MEDIA S3 BUCKET ========================
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref MediaBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+Outputs:
+  CoreApiUrl:
+    Description: URL del API Gateway central
+    Value: !Sub "https://${CoreApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+  MediaBucketName:
+    Description: Nombre del bucket S3 de media
+    Value: !Ref MediaBucket

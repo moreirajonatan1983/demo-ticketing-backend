@@ -1,0 +1,33 @@
+version = 0.1
+
+[default.global.parameters]
+stack_name = "demo-ticketing-backend"
+
+# =============================================
+# STAGE
+# =============================================
+[stage.deploy.parameters]
+stack_name           = "demo-ticketing-backend-stage"
+s3_bucket            = "demo-ticketing-tfstate-operations-stage"
+s3_prefix            = "sam/demo-ticketing-backend-stage"
+region               = "us-east-1"
+capabilities         = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+confirm_changeset    = false
+fail_on_empty_changeset = false
+parameter_overrides  = "Environment=stage MediaBucketName=demo-ticketing-media-stage"
+# El role que GitHub Actions usa para desplegar (assume desde Management → workloads-stage)
+role_arn             = "arn:aws:iam::652253416878:role/OrganizationAccountAccessRole"
+
+# =============================================
+# PROD  (activar cuando stage esté validado)
+# =============================================
+[prod.deploy.parameters]
+stack_name           = "demo-ticketing-backend-prod"
+s3_bucket            = "demo-ticketing-tfstate-operations-prod"
+s3_prefix            = "sam/demo-ticketing-backend-prod"
+region               = "us-east-1"
+capabilities         = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+confirm_changeset    = false
+fail_on_empty_changeset = false
+parameter_overrides  = "Environment=prod MediaBucketName=demo-ticketing-media-prod"
+role_arn             = "arn:aws:iam::781856668198:role/OrganizationAccountAccessRole"
